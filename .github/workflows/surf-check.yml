@@ -1,0 +1,38 @@
+name: Surf Check
+
+# Déclencheurs :
+#  - schedule : exécution automatique chaque mercredi à 6h UTC
+#  - workflow_dispatch : permet un déclenchement manuel depuis l'onglet
+#    "Actions" du dépôt, utile pour tester sans attendre mercredi
+on:
+  schedule:
+    - cron: '0 6 * * 3'   # minute heure jour mois jour_de_semaine (3 = mercredi)
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Exécuter la vérification des conditions de surf
+        env:
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          # Valeurs par défaut adaptées à Gmail (port 587, STARTTLS).
+          # À adapter si une autre messagerie est utilisée.
+          SMTP_SERVER: smtp.gmail.com
+          SMTP_PORT: '587'
+        run: python surf_check.py
