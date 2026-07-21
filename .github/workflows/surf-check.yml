@@ -1,14 +1,28 @@
 name: Surf Check
 
 # Déclencheurs :
-#  - schedule : exécution automatique chaque mercredi à 6h UTC
+#  - schedule : trois créneaux hebdomadaires à midi (heure de Paris, soit
+#    10h UTC pendant la saison mi-mai à fin octobre, toujours en heure
+#    d'été CEST = UTC+2 sur cette période) :
+#      * mardi   : le script vérifie si c'est l'avant-veille du jeudi de
+#                  l'Ascension cette année ; sinon il ne fait rien.
+#      * jeudi   : vérification hebdomadaire habituelle (week-end à venir
+#                  + jours fériés fixes 14 juillet / 15 août si proches).
+#      * samedi  : le script vérifie si c'est l'avant-veille du lundi de
+#                  Pentecôte cette année ; sinon il ne fait rien.
+#    Le script lui-même (surf_check.py) décide quoi faire selon le jour
+#    d'exécution ; ces trois cron déclenchent le même job, sans distinction
+#    de paramètres.
 #  - workflow_dispatch : permet un déclenchement manuel depuis l'onglet
-#    "Actions" du dépôt, utile pour tester sans attendre mercredi.
-#    L'option "test_mode" (décochée par défaut) permet de lancer un envoi
-#    d'e-mail de test avec des données simulées, sans appeler les API.
+#    "Actions" du dépôt, utile pour tester sans attendre l'un des trois
+#    jours. L'option "test_mode" (décochée par défaut) permet de lancer un
+#    envoi d'e-mail de test avec des données simulées, sans appeler les
+#    API.
 on:
   schedule:
-    - cron: '0 6 * * 3'   # minute heure jour mois jour_de_semaine (3 = mercredi)
+    - cron: '0 10 * * 2'   # mardi 12h Paris (CEST) — avant-veille Ascension
+    - cron: '0 10 * * 4'   # jeudi 12h Paris (CEST) — vérification hebdomadaire
+    - cron: '0 10 * * 6'   # samedi 12h Paris (CEST) — avant-veille Pentecôte
   workflow_dispatch:
     inputs:
       test_mode:
@@ -39,7 +53,7 @@ jobs:
           SMTP_SERVER: smtp.gmail.com
           SMTP_PORT: '587'
           # Activé uniquement si la case "test_mode" est cochée lors d'un
-          # déclenchement manuel ; toujours "false" sur l'exécution planifiée
-          # du mercredi, qui n'a pas cet input.
+          # déclenchement manuel ; toujours "false" sur les exécutions
+          # planifiées, qui n'ont pas cet input.
           TEST_MODE: ${{ inputs.test_mode == true }}
         run: python surf_check.py
