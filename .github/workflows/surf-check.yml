@@ -3,29 +3,32 @@ name: Surf Check
 # Déclencheurs :
 #  - schedule : exécution automatique chaque mercredi à 6h UTC
 #  - workflow_dispatch : permet un déclenchement manuel depuis l'onglet
-#    "Actions" du dépôt, utile pour tester sans attendre mercredi
+#    "Actions" du dépôt, utile pour tester sans attendre mercredi.
+#    L'option "test_mode" (décochée par défaut) permet de lancer un envoi
+#    d'e-mail de test avec des données simulées, sans appeler les API.
 on:
   schedule:
     - cron: '0 6 * * 3'   # minute heure jour mois jour_de_semaine (3 = mercredi)
-  workflow_dispatch: {}
-
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: "Envoyer un e-mail de test avec des données simulées"
+        required: false
+        type: boolean
+        default: false
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
     steps:
       - name: Récupérer le dépôt
         uses: actions/checkout@v4
-
       - name: Installer Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
       - name: Installer les dépendances
         run: pip install -r requirements.txt
-
       - name: Exécuter la vérification des conditions de surf
         env:
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
@@ -35,4 +38,8 @@ jobs:
           # À adapter si une autre messagerie est utilisée.
           SMTP_SERVER: smtp.gmail.com
           SMTP_PORT: '587'
+          # Activé uniquement si la case "test_mode" est cochée lors d'un
+          # déclenchement manuel ; toujours "false" sur l'exécution planifiée
+          # du mercredi, qui n'a pas cet input.
+          TEST_MODE: ${{ inputs.test_mode == true }}
         run: python surf_check.py
