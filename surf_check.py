@@ -13,6 +13,11 @@ Aucune clé d'API n'est nécessaire. Seuls les identifiants d'envoi de
 mail (EMAIL_FROM, EMAIL_TO, EMAIL_PASSWORD, et éventuellement
 SMTP_SERVER / SMTP_PORT) sont attendus comme variables d'environnement,
 injectées en production par GitHub Actions depuis les secrets du dépôt.
+
+Mode test : si la variable d'environnement TEST_MODE vaut "true", le
+script saute le garde-fou saisonnier et les appels API, fabrique un
+résultat "idéal" avec des valeurs fictives, et envoie un e-mail de test
+via la même fonction send_email() que le mode normal.
 """
 
 import os
@@ -287,9 +292,59 @@ def send_email(subject: str, body: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 8. Point d'entrée
+# 8. Mode test
+# ---------------------------------------------------------------------------
+def run_test_mode() -> int:
+    """Fabrique un résultat idéal avec des valeurs fictives qui remplissent
+    volontairement tous les critères, puis envoie un e-mail de test via la
+    même fonction send_email() que le mode normal (donc avec la même
+    chaîne SMTP, les mêmes secrets, le même serveur). Ne fait aucun appel
+    réseau vers les API Open-Meteo."""
+    print("MODE TEST activé")
+
+    fake_result = {
+        "spot": "Étretat (données simulées)",
+        "department": "76",
+        "ok": True,
+        "checks": {
+            "houle_primaire": True,
+            "houle_secondaire": True,
+            "periode_houle": True,
+            "temperature_eau": True,
+            "vent": True,
+        },
+        "values": {
+            "houle_primaire_m": 1.4,
+            "houle_secondaire_m": 0.2,
+            "periode_houle_s": 9.5,
+            "temperature_eau_c": 19.2,
+            "vent_kn": 8.0,
+            "vent_direction_deg": 320,
+            "vent_categorie": "offshore",
+        },
+    }
+
+    subject = "Surf Alert Normandie — E-MAIL DE TEST (données simulées)"
+    body = (
+        "E-MAIL DE TEST (données simulées) — ceci est un test du mode "
+        "TEST_MODE, aucune donnée météo réelle n'a été utilisée.\n\n"
+        + build_email_body([fake_result])
+    )
+
+    print("Envoi de l'e-mail de test...")
+    send_email(subject=subject, body=body)
+    print("E-mail de test envoyé avec succès")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# 9. Point d'entrée
 # ---------------------------------------------------------------------------
 def main() -> int:
+    test_mode = os.environ.get("TEST_MODE", "false").lower() == "true"
+    if test_mode:
+        return run_test_mode()
+
     today = datetime.now(timezone.utc).date()
 
     if not is_in_season(today):
