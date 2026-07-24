@@ -53,7 +53,24 @@ from surf_check import (
 MARINE_ARCHIVE_URL = "https://marine-api.open-meteo.com/v1/marine"
 WEATHER_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 REQUEST_TIMEOUT_S = 30
+RETRY_TIMEOUTS_S = [30, 60, 90]  # tentatives successives, timeout croissant
 DATA_AVAILABILITY_LAG_DAYS = 3  # marge de sécurité avant "aujourd'hui"
+
+
+def _get_with_retries(url: str, params: dict) -> dict:
+    """Effectue la requête avec plusieurs tentatives et un timeout croissant,
+    car les archives Open-Meteo peuvent occasionnellement être lentes à
+    répondre sur de longues périodes (saison complète, heure par heure)."""
+    last_exc = None
+    for attempt, timeout in enumerate(RETRY_TIMEOUTS_S, start=1):
+        try:
+            resp = requests.get(url, params=params, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()["hourly"]
+        except (requests.RequestException, KeyError) as exc:
+            last_exc = exc
+            print(f"    (tentative {attempt}/{len(RETRY_TIMEOUTS_S)} échouée : {exc})")
+    raise last_exc
 
 
 # ---------------------------------------------------------------------------
@@ -117,9 +134,7 @@ def fetch_marine_history(lat: float, lon: float, start_date: date, end_date: dat
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
     }
-    resp = requests.get(MARINE_ARCHIVE_URL, params=params, timeout=REQUEST_TIMEOUT_S)
-    resp.raise_for_status()
-    return resp.json()["hourly"]
+    return _get_with_retries(MARINE_ARCHIVE_URL, params)
 
 
 def fetch_wind_history(lat: float, lon: float, start_date: date, end_date: date) -> dict:
@@ -132,9 +147,7 @@ def fetch_wind_history(lat: float, lon: float, start_date: date, end_date: date)
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
     }
-    resp = requests.get(WEATHER_ARCHIVE_URL, params=params, timeout=REQUEST_TIMEOUT_S)
-    resp.raise_for_status()
-    return resp.json()["hourly"]
+    return _get_with_retries(WEATHER_ARCHIVE_URL, params)
 
 
 # ---------------------------------------------------------------------------
