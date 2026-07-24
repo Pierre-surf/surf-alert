@@ -1,0 +1,39 @@
+name: Backtest Surf Alert
+# Déclenchement manuel uniquement, depuis l'onglet Actions du dépôt.
+# N'envoie jamais de mail et n'utilise aucun des secrets EMAIL_* : ce
+# workflow interroge uniquement les archives historiques d'Open-Meteo
+# pour compter combien de fois le mail de validation se serait déclenché
+# sur une saison passée.
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: "Année à rejouer (saison 15 mai -> 30 octobre). Laisser vide pour l'année précédente."
+        required: false
+        type: string
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+      - name: Lancer le backtest
+        run: |
+          if [ -n "${{ inputs.year }}" ]; then
+            python backtest_surf_check.py --year "${{ inputs.year }}" | tee backtest_output.txt
+          else
+            python backtest_surf_check.py | tee backtest_output.txt
+          fi
+      - name: Afficher le résumé dans l'onglet Summary du run
+        if: always()
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat backtest_output.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
