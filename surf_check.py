@@ -7,10 +7,10 @@ Ce script est exécuté trois fois par semaine par GitHub Actions, à midi
 (heure de Paris), et se comporte différemment selon le jour :
 
 - Le JEUDI : vérification hebdomadaire habituelle. Vérifie les
-  PRÉVISIONS de conditions de surf sur six spots de la côte normande
-  (Calvados 14 / Seine-Maritime 76) pour le samedi et le dimanche à
-  venir, ainsi que les jours fériés fixes (14 juillet, 15 août) si l'un
-  d'eux tombe dans les 6 jours suivants.
+  PRÉVISIONS de conditions de surf sur onze spots de la côte normande
+  (Calvados 14 / Seine-Maritime 76 / Manche 50) pour le samedi et le
+  dimanche à venir, ainsi que les jours fériés fixes (14 juillet,
+  15 août) si l'un d'eux tombe dans les 6 jours suivants.
 - Le MARDI : vérifie si ce jour est précisément l'avant-veille du jeudi
   de l'Ascension cette année. Si oui, vérifie les prévisions pour le
   jour de l'Ascension et envoie un e-mail si les conditions sont
@@ -211,13 +211,48 @@ SPOTS = [
         "lon": 1.3833,
         "facing": 10,   # Nord/Nord-Est, extrémité orientale de la zone
     },
+    {
+        "name": "Siouville-Hague",
+        "department": "50",
+        "lat": 49.6178,
+        "lon": -1.8380,
+        "facing": 280,  # Ouest/Nord-Ouest, côte de la Hague exposée à l'Atlantique
+    },
+    {
+        "name": "Vauville",
+        "department": "50",
+        "lat": 49.6494,
+        "lon": -1.8236,
+        "facing": 270,  # Ouest, grande plage ouverte de la Hague
+    },
+    {
+        "name": "Barneville-Carteret",
+        "department": "50",
+        "lat": 49.3746,
+        "lon": -1.7562,
+        "facing": 260,  # Ouest/Sud-Ouest, côte ouest du Cotentin
+    },
+    {
+        "name": "Le Rozel",
+        "department": "50",
+        "lat": 49.4506,
+        "lon": -1.8264,
+        "facing": 270,  # Ouest, côte ouest du Cotentin entre Vauville et Sciotot
+    },
+    {
+        "name": "Sciotot (Surtainville)",
+        "department": "50",
+        "lat": 49.4917,
+        "lon": -1.8419,
+        "facing": 270,  # Ouest, spot réputé de la côte ouest du Cotentin
+    },
 ]
 
 # ---------------------------------------------------------------------------
 # 4. Critères de qualité de vagues
 # ---------------------------------------------------------------------------
 CRITERIA = {
-    "min_swell_height_m": 0.7,       # houle primaire minimale
+    "min_swell_height_m": 0.60,      # houle primaire minimale
     "max_secondary_swell_m": 0.4,    # houle secondaire maximale (clapot croisé)
     "min_swell_period_s": 6.0,       # période de houle minimale
     "min_water_temp_c": 17.5,        # température de l'eau minimale
